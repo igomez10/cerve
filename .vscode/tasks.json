@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "run",
+			"command": "${fileDirname}/${fileBasenameNoExtension}",
+			"args": [],
+			"dependsOn": [
+				"build"
+			],
+			"detail": "Run",
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "build and run",
+			"command": "gcc -o ${fileBasenameNoExtension} ${file} && ./${fileBasenameNoExtension}",
+			"args": [],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "Build"
+		}
+	]
+}
