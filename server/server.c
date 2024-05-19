@@ -14,8 +14,6 @@ int main()
 
     // size of address structure
     socklen_t addrlen = sizeof(address);
-    char buffer[BUFFER_SIZE] = {0};
-    const char *hello = "Hello from server";
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -29,12 +27,20 @@ int main()
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Binding the socket to the specified port
-    if (bind(server_fd, (struct sockaddr *)&address, addrlen) < 0)
+    // Binding the socket to the specified port with
+    // retrying if the port is already in use
+    for (;;)
     {
-        perror("bind failed");
-        close(server_fd);
-        exit(EXIT_FAILURE);
+        printf("Binding to port %d\n", PORT);
+        if (bind(server_fd, (struct sockaddr *)&address, addrlen) < 0)
+        {
+            perror("bind failed");
+            continue;
+        }
+        else
+        {
+            break;
+        }
     }
 
     // Listening for incoming connections
@@ -48,39 +54,51 @@ int main()
     printf("Server is listening on port %d\n", PORT);
 
     // Accepting a connection from a client
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen)) < 0)
+    for (;;)
     {
-        perror("accept");
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
+        printf("Waiting for a connection\n");
 
-    printf("Connection accepted\n");
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen)) < 0)
+        {
+            continue;
+        }
 
-    // Reading data from the client
-    int read_val = read(new_socket, buffer, BUFFER_SIZE);
-    if (read_val < 0)
-    {
-        perror("read");
+        printf("Connection accepted\n");
+        for (;;)
+        {
+            printf("Waiting for data\n");
+            // Reading data from the client
+            char buffer[BUFFER_SIZE] = {0};
+            int read_val = read(new_socket, buffer, BUFFER_SIZE);
+            printf("Data received\n");
+            if (read_val < 0)
+            {
+                printf("failed to read data");
+                break;
+            }
+
+            printf("Received: %s\n", buffer);
+
+            // Sending a response to the client
+            printf("Sending response\n");
+            const char *message = "Hello from server";
+            int sentres = write(new_socket, message, strlen(message) + 1);
+            if (sentres < 0)
+            {
+                printf("failed to send message");
+                break;
+            }
+
+            printf("Hello message sent\n");
+        }
+
+        // Closing the socket
+        printf("Closing the socket\n");
         close(new_socket);
-        close(server_fd);
-        exit(EXIT_FAILURE);
+        printf("Connection closed\n");
     }
-    printf("Received: %s\n", buffer);
 
-    // Sending a response to the client
-    if (send(new_socket, hello, strlen(hello), 0) < 0)
-    {
-        perror("send");
-        close(new_socket);
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
-    printf("Hello message sent\n");
-
-    // Closing the socket
-    close(new_socket);
+    printf("Closing the server\n");
     close(server_fd);
-
     return 0;
 }
