@@ -59,6 +59,7 @@
   "files.associations": {
     "*.sql": "sql",
     "*.tsx": "typescriptreact",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "in.h": "c"
   }
 }

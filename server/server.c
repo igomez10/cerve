@@ -48,6 +48,7 @@ void *handle_connection(void *socket_desc)
     return NULL;
 }
 
+// start server
 int main()
 {
     int server_fd, *new_socket;

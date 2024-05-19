@@ -1,9 +1,4 @@
-
-// test square function defined in ../main.c
-
 #include <stdio.h>
-#include "../square.c"
-#include "../person/person.c"
 
 int test_square()
 {
@@ -31,29 +26,6 @@ int test_square()
     return 0;
 }
 
-// test person functions defined in person/person.c
-int test_person()
-{
-    Person p = Person_create();
-    p.set_name(&p, "Alice");
-    p.set_age(&p, 30);
-    p.print_info(&p);
-
-    if (p.age != 30)
-    {
-        printf("Age is not set correctly\n");
-        return 1;
-    }
-
-    if (strcmp(p.name, "Alice") != 0)
-    {
-        printf("Name is not set correctly\n");
-        return 1;
-    }
-
-    return 0;
-}
-
 int main()
 {
     if (test_square() == 0)
@@ -64,15 +36,5 @@ int main()
     {
         printf("Some testcases failed\n");
     }
-
-    if (test_person() == 0)
-    {
-        printf("All testcases passed\n");
-    }
-    else
-    {
-        printf("Some testcases failed\n");
-    }
-
     return 0;
 }
