@@ -7,11 +7,12 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
+#define BACKLOG 3
 
 void *handle_connection(void *socket_desc)
 {
     int new_socket = *(int *)socket_desc;
-    free(socket_desc); // Free the memory allocated for the socket descriptor
+    free(socket_desc);
 
     char buffer[BUFFER_SIZE] = {0};
     int read_val;
@@ -19,28 +20,32 @@ void *handle_connection(void *socket_desc)
     for (;;)
     {
         printf("Waiting for data\n");
-        // Reading data from the client
         read_val = read(new_socket, buffer, BUFFER_SIZE);
         if (read_val <= 0)
         {
-            printf("Failed to read data or connection closed\n");
+            if (read_val == 0)
+            {
+                printf("Client disconnected\n");
+            }
+            else
+            {
+                perror("Failed to read data");
+            }
             break;
         }
 
         printf("Received: %s\n", buffer);
 
-        // Sending a response to the client
         const char *message = "Hello from server";
-        if (write(new_socket, message, strlen(message) + 1) < 0)
+        if (write(new_socket, message, strlen(message)) < 0)
         {
-            printf("Failed to send message\n");
+            perror("Failed to send message");
             break;
         }
 
         printf("Hello message sent\n");
     }
 
-    // Closing the socket
     printf("Closing the socket\n");
     close(new_socket);
     printf("Connection closed\n");
@@ -48,86 +53,75 @@ void *handle_connection(void *socket_desc)
     return NULL;
 }
 
-// start server
-int main()
+void start_server()
 {
-    int server_fd, *new_socket;
+    int server_fd;
     struct sockaddr_in address;
     socklen_t addrlen = sizeof(address);
 
-    // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
-        perror("socket failed");
+        perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // Setting up the address structure
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Binding the socket to the specified port with retrying if the port is already in use
-    for (;;)
+    while (bind(server_fd, (struct sockaddr *)&address, addrlen) < 0)
     {
-        printf("Binding to port %d\n", PORT);
-        if (bind(server_fd, (struct sockaddr *)&address, addrlen) < 0)
-        {
-            perror("bind failed");
-            continue;
-        }
-        else
-        {
-            break;
-        }
+        perror("Bind failed, retrying");
+        sleep(1); // wait before retrying
     }
 
-    // Listening for incoming connections
-    if (listen(server_fd, 3) < 0)
+    if (listen(server_fd, BACKLOG) < 0)
     {
-        perror("listen");
+        perror("Listen failed");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
 
     printf("Server is listening on port %d\n", PORT);
 
-    // Accepting connections from clients
-    for (;;)
+    while (1)
     {
         printf("Waiting for a connection\n");
 
-        new_socket = malloc(sizeof(int));
+        int *new_socket = malloc(sizeof(int));
         if (new_socket == NULL)
         {
-            perror("malloc failed");
+            perror("Malloc failed");
             exit(EXIT_FAILURE);
         }
 
         *new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
         if (*new_socket < 0)
         {
-            perror("accept failed");
+            perror("Accept failed");
             free(new_socket);
             continue;
         }
 
         printf("Connection accepted\n");
 
-        // Creating a thread for each new connection
         pthread_t thread_id;
         if (pthread_create(&thread_id, NULL, handle_connection, (void *)new_socket) < 0)
         {
-            perror("could not create thread");
+            perror("Could not create thread");
             free(new_socket);
             continue;
         }
 
+        pthread_detach(thread_id);
         printf("Handler assigned\n");
-        pthread_detach(thread_id); // Detach the thread so that it cleans up after itself
     }
 
-    printf("Closing the server\n");
     close(server_fd);
+}
+
+int main()
+{
+    start_server();
     return 0;
 }
