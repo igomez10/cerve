@@ -7,7 +7,9 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
-#define BACKLOG 3
+
+// maximum number of pending connections
+#define BACKLOG 300
 
 void *handle_connection(void *socket_desc)
 {
@@ -19,7 +21,7 @@ void *handle_connection(void *socket_desc)
 
     for (;;)
     {
-        printf("Waiting for data\n");
+        // printf("Waiting for data\n");
         read_val = read(new_socket, buffer, BUFFER_SIZE);
         if (read_val <= 0)
         {
@@ -34,7 +36,7 @@ void *handle_connection(void *socket_desc)
             break;
         }
 
-        printf("Received: %s\n", buffer);
+        // printf("Received: %s\n", buffer);
 
         const char *message = "Hello from server";
         if (write(new_socket, message, strlen(message)) < 0)
@@ -43,7 +45,7 @@ void *handle_connection(void *socket_desc)
             break;
         }
 
-        printf("Hello message sent\n");
+        // printf("Hello message sent\n");
     }
 
     printf("Closing the socket\n");
@@ -69,12 +71,14 @@ void start_server()
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
+    // bind the socket to port 8080
     while (bind(server_fd, (struct sockaddr *)&address, addrlen) < 0)
     {
         perror("Bind failed, retrying");
         sleep(1); // wait before retrying
     }
 
+    // listen for incoming connections
     if (listen(server_fd, BACKLOG) < 0)
     {
         perror("Listen failed");
@@ -84,6 +88,7 @@ void start_server()
 
     printf("Server is listening on port %d\n", PORT);
 
+    int counter = 0;
     while (1)
     {
         printf("Waiting for a connection\n");
@@ -104,7 +109,8 @@ void start_server()
         }
 
         printf("Connection accepted\n");
-
+        counter++;
+        printf("Counter: %d\n", counter);
         pthread_t thread_id;
         if (pthread_create(&thread_id, NULL, handle_connection, (void *)new_socket) < 0)
         {

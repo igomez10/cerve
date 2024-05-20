@@ -60,6 +60,10 @@
     "*.sql": "sql",
     "*.tsx": "typescriptreact",
     "stdio.h": "c",
-    "in.h": "c"
+    "in.h": "c",
+    "pthread.h": "c",
+    "unistd.h": "c",
+    "stdlib.h": "c",
+    "_malloc.h": "c"
   }
 }

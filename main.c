@@ -5,10 +5,47 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <time.h>
+#include "main.h"
+#include <pthread.h>
 
 // start client
 int main()
 {
+    for (int client_id = 0;; client_id++)
+    {
+        pthread_t thread;
+        int *arg = malloc(sizeof(int));
+        if (arg == NULL)
+        {
+            printf("Failed to allocate memory\n");
+            exit(1);
+        }
+        *arg = client_id;
+        if (pthread_create(&thread, NULL, connect_to_server, arg) != 0)
+        {
+            printf("Failed to create thread\n");
+            free(arg);
+            exit(1);
+        }
+        // Optionally detach the thread if you don't want to join later
+        pthread_detach(thread);
+
+        usleep(5000); // Sleep for 50ms before creating the next client
+    }
+
+    return 0;
+}
+
+void *connect_to_server(void *arg_client_id)
+{
+    int client_id = *(int *)arg_client_id;
+    free(arg_client_id);
+
+    // Set thread name
+    char thread_name[16];
+    snprintf(thread_name, sizeof(thread_name), "client_%d", client_id);
+    pthread_setname_np(thread_name);
+
     int sockfd;
     for (;;)
     {
@@ -39,6 +76,7 @@ int main()
         {
             printf("Failed to connect to the server\n");
             usleep(500000);
+            close(sockfd); // Close the socket on failure to connect
             continue;
         }
 
@@ -48,13 +86,13 @@ int main()
         {
             // send current unix timestamp to the server
             char data[1024];
-            sprintf(data, "%d\n", i);
+            sprintf(data, "client_id %d %d\n", client_id, i);
             write(sockfd, data, strlen(data));
 
             // read data from the server
             char buffer[1024];
             read(sockfd, buffer, 1024);
-            printf("Data received: %s\n", buffer);
+            printf("cleint_id %d Data received: %s\n", client_id, buffer);
 
             // sleep for 500ms
             usleep(500000);
@@ -63,6 +101,5 @@ int main()
     printf("Closing the connection\n");
     // Close the socket
     close(sockfd);
-
-    return 0;
+    return NULL; // Return NULL to match the pthread function signature
 }
